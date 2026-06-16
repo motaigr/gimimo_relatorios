@@ -40,3 +40,6 @@ print(df_total.sort_values("Total", ascending=False).head(10))
 print(df_total["Total"].sum())
 print(f"Ticket médio: {ticket_medio:.2f}")
 print(f"Total de pedidos: {pedidos}")
+
+
+df_total.to_excel("resultado.xlsx", index=False)
