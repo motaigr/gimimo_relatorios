@@ -2,7 +2,7 @@ import pandas as pd
 import glob
 import matplotlib.pyplot as plt
 
-arquivos = glob.glob("*.csv")
+arquivos = glob.glob("clientes/*.csv")
 arquivos.remove("relatorio-de-vendas_10-06-2026-22-34-11.csv")
 
 
@@ -43,3 +43,4 @@ print(f"Total de pedidos: {pedidos}")
 
 
 df_total.to_excel("resultado.xlsx", index=False)
+
