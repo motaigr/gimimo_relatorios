@@ -32,6 +32,7 @@ plt.barh(top10["Nome"], top10["Total"])
 plt.xlabel("Total (R$)")
 plt.title("Top 10 Clientes por Valor Total")
 plt.tight_layout()
+plt.gca().invert_yaxis()
 plt.show()
 
 #print(df_total[["Nome", "cpf"]].head(5))

@@ -6,6 +6,14 @@ Os relatórios são exportados manualmente do Tiny ERP em formato CSV e processa
 
 ## Análises disponíveis
 
+### `dashboard.py` — Dashboard Interativo
+- Dashboard web com todas as análises consolidadas
+- Métricas de faturamento total, pedidos e ticket médio
+- Gráfico de evolução do faturamento mensal
+- Ranking dos top 10 clientes por faturamento
+- Ranking dos top 10 produtos por receita e por quantidade
+- Atualização automática ao adicionar novos CSVs
+
 ### `vendas.py` — Análise de Clientes
 - Consolidação de múltiplos relatórios de vendas
 - Limpeza e separação de nome e CPF
@@ -32,6 +40,7 @@ Os relatórios são exportados manualmente do Tiny ERP em formato CSV e processa
 
 ```
 gimimo_relatorios/
+├── dashboard.py
 ├── vendas.py
 ├── faturamento.py
 ├── produtos.py
@@ -45,6 +54,7 @@ gimimo_relatorios/
 - Python 3.14
 - pandas
 - matplotlib
+- streamlit
 - glob
 
 ## Como usar
@@ -57,10 +67,16 @@ gimimo_relatorios/
    ```
 3. Instale as dependências:
    ```bash
-   pip install pandas matplotlib openpyxl
+   python -m pip install pandas matplotlib openpyxl streamlit
    ```
 4. Exporte os relatórios do Tiny ERP em formato CSV e coloque nas pastas correspondentes
-5. Execute o script desejado:
+
+5. Para rodar o dashboard:
+   ```bash
+   python -m streamlit run dashboard.py
+   ```
+
+6. Para rodar os scripts individuais:
    ```bash
    python vendas.py
    python faturamento.py
