@@ -83,6 +83,11 @@ gimimo_relatorios/
    python produtos.py
    ```
 
+## Dashboard Online
+
+Acesse o dashboard em tempo real:
+[gimimorelatorios-dashboard.streamlit.app](https://gimimorelatorios-dashboard.streamlit.app)
+
 ## Autor
 
 Igor
