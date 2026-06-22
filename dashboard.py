@@ -104,7 +104,6 @@ ax_rosca.pie(
     autopct="%1.1f%%",
     wedgeprops={"width": 0.5}
 )
-ax_rosca.set_title("Vendas por Categoria (Quantidade)")
 st.pyplot(fig_rosca)
 
 
