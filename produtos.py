@@ -29,7 +29,7 @@ plt.tight_layout()
 plt.gca().invert_yaxis()
 plt.show()
 
-df_final.to_excel("result_receita.xlsx", index=False)
+#df_final.to_excel("result_receita.xlsx", index=False)
 
 df_quantidade = df_final.sort_values("Quantidade", ascending=False)
 plt.barh(df_quantidade["Produto"], df_quantidade["Quantidade"])
@@ -41,4 +41,25 @@ plt.tight_layout()
 plt.gca().invert_yaxis()
 plt.show()
 
-df_quantidade.to_excel("result_quantidade.xlsx", index=False)
+#df_quantidade.to_excel("result_quantidade.xlsx", index=False)
+
+
+def categorizar(nome):
+    if "Absorvente" in nome or "Sachê" in nome:
+        return "Armazenamento"
+    else:
+        return "Bótons"
+    
+df_final["Categoria"] = df_final["Produto"].apply(categorizar)
+df_categorias = df_final.groupby("Categoria").agg({"Quantidade": "sum", "Valor Total": "sum"})
+print(df_categorias)
+
+fig, ax = plt.subplots()
+ax.pie(
+    df_categorias["Quantidade"],
+    labels=df_categorias.index,
+    autopct="%1.1f%%",
+    wedgeprops={"width": 0.5}
+)
+ax.set_title("Vendas por Categoria (Quantidade)")
+plt.show()

@@ -87,6 +87,27 @@ plt.tight_layout()
 plt.gca().invert_yaxis()
 st.pyplot(fig_quant)
 
+def categorizar(nome):
+    if "Absorvente" in nome or "Sachê" in nome:
+        return "Armazenamento"
+    else:
+        return "Bótons"
+
+df_quant["Categoria"] = df_quant["Produto"].apply(categorizar)
+df_categorias = df_quant.groupby("Categoria").agg({"Quantidade": "sum"})
+
+st.subheader("Vendas por Categoria")
+fig_rosca, ax_rosca = plt.subplots()
+ax_rosca.pie(
+    df_categorias["Quantidade"],
+    labels=df_categorias.index,
+    autopct="%1.1f%%",
+    wedgeprops={"width": 0.5}
+)
+ax_rosca.set_title("Vendas por Categoria (Quantidade)")
+st.pyplot(fig_rosca)
+
+
 arquivos_cli = glob.glob("clientes/*.csv")
 lista_cli = []
 for arquivo in arquivos_cli:
