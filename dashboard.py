@@ -1,129 +1,174 @@
 import streamlit as st
 import pandas as pd
 import glob
+import plotly.express as px
+import plotly.graph_objects as go
 
-# --- Dados de vendas ---
-arquivos = glob.glob("clientes/*.csv")
-arquivos = [a for a in arquivos if "22-34-11" not in a]
+st.set_page_config(
+    page_title="Gimimo — Análise de Vendas",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
-lista_dfs = []
-for arquivo in arquivos:
-    df_temp = pd.read_csv(arquivo, sep=";")
-    df_temp["Total"] = df_temp["Total"].astype(str).str.replace(",", ".").astype(float)
-    lista_dfs.append(df_temp)
+st.markdown("""
+    <style>
+        .block-container { padding-top: 1.5rem; padding-bottom: 1rem; }
+        h1 { color: #FFFFFF; }
+        h2, h3 { color: #CCCCCC; }
+        .stMetric { background-color: #1E1E2E; border-radius: 10px; padding: 10px; }
+    </style>
+""", unsafe_allow_html=True)
 
-df_vendas = pd.concat(lista_dfs, ignore_index=True)
+# ── Carregamento de dados ──────────────────────────────────────────────────────
 
-# --- Dashboard ---
-st.title("Dashboard Gimimo")
+@st.cache_data
+def carregar_vendas():
+    arquivos = glob.glob("clientes/*.csv")
+    arquivos = [a for a in arquivos if "22-34-11" not in a]
+    dfs = []
+    for arquivo in arquivos:
+        df = pd.read_csv(arquivo, sep=";")
+        df["Total"] = df["Total"].astype(str).str.replace(",", ".").astype(float)
+        df["Nome"] = df["Cliente"].str.split(" - ").str[0]
+        dfs.append(df)
+    return pd.concat(dfs, ignore_index=True)
 
-col1, col2, col3 = st.columns(3)
-col1.metric("Faturamento Total", f"R$ {df_vendas['Total'].sum():.2f}")
-col2.metric("Total de Pedidos", len(df_vendas))
-col3.metric("Ticket Médio", f"R$ {df_vendas['Total'].mean():.2f}")
+@st.cache_data
+def carregar_faturamento():
+    arquivos = glob.glob("evolucao/*.csv")
+    dfs = []
+    for arquivo in arquivos:
+        df = pd.read_csv(arquivo, sep=";")
+        df["Período"] = pd.to_datetime(df["Período"], format="%d/%m/%Y")
+        df["Valor"] = df["Valor"].astype(str).str.replace(",", ".").astype(float)
+        df["Mês"] = df["Período"].dt.to_period("M")
+        dfs.append(df)
+    df = pd.concat(dfs, ignore_index=True)
+    return df.groupby("Mês", as_index=False).agg({"Valor": "sum"})
 
-import matplotlib.pyplot as plt
+@st.cache_data
+def carregar_produtos():
+    arquivos = glob.glob("produtos/*.csv")
+    dfs = []
+    for arquivo in arquivos:
+        df = pd.read_csv(arquivo, sep=";")
+        df["Valor Total"] = df["Valor Total"].astype(str).str.replace(",", ".").astype(float)
+        df["Quantidade"] = df["Quantidade"].astype(int)
+        df["Produto"] = df["Produto"].str.split("|").str[0].str.strip()
+        dfs.append(df)
+    df = pd.concat(dfs, ignore_index=True)
+    return df.groupby("Produto", as_index=False).agg({"Quantidade": "sum", "Valor Total": "sum"})
 
-st.subheader("Evolução do Faturamento Mensal")
+df_vendas = carregar_vendas()
+df_fat = carregar_faturamento()
+df_prod = carregar_produtos()
 
-arquivos_fat = glob.glob("evolucao/*.csv")
-lista_fat = []
-for arquivo in arquivos_fat:
-    df_temp = pd.read_csv(arquivo, sep=";")
-    df_temp["Período"] = pd.to_datetime(df_temp["Período"], format="%d/%m/%Y")
-    df_temp["Valor"] = df_temp["Valor"].astype(str).str.replace(",", ".").astype(float)
-    df_temp["Mês"] = df_temp["Período"].dt.to_period("M")
-    lista_fat.append(df_temp)
-
-df_fat = pd.concat(lista_fat, ignore_index=True)
-df_fat = df_fat.groupby("Mês", as_index=False).agg({"Valor": "sum"})
-
-fig, ax = plt.subplots()
-ax.plot(df_fat["Mês"].astype(str), df_fat["Valor"], marker="o")
-ax.set_xlabel("Mês")
-ax.set_ylabel("Valor (R$)")
-plt.xticks(rotation=45)
-plt.tight_layout()
-st.pyplot(fig)
-
-arquivos_prod = glob.glob("produtos/*.csv")
-lista_prod = []
-for arquivo in arquivos_prod:
-    df_temp = pd.read_csv(arquivo, sep=";")
-    df_temp["Valor Total"] = df_temp["Valor Total"].astype(str).str.replace(",", ".").astype(float)
-    lista_prod.append(df_temp)
-
-df_prod = pd.concat(lista_prod, ignore_index=True)
-df_prod["Produto"] = df_prod["Produto"].str.split("|").str[0].str.strip()
-df_prod = df_prod.groupby("Produto", as_index=False).agg({"Valor Total": "sum"})
-df_prod = df_prod.sort_values("Valor Total", ascending=False)
-
-st.subheader("Top 10 Produtos por Receita")
-fig_prod, ax_prod = plt.subplots()
-ax_prod.barh(df_prod.head(10)["Produto"], df_prod.head(10)["Valor Total"])
-ax_prod.set_xlabel("Valor Total (R$)")
-ax_prod.set_ylabel("Produto")
-plt.tight_layout()
-plt.gca().invert_yaxis()
-st.pyplot(fig_prod)
-
-arquivos_quant = glob.glob("produtos/*.csv")
-lista_quant = []
-for arquivo in arquivos_quant:
-    df_temp = pd.read_csv(arquivo, sep=";")
-    df_temp["Quantidade"] = df_temp["Quantidade"].astype(int)
-    df_temp["Produto"] = df_temp["Produto"].str.split("|").str[0].str.strip()
-    lista_quant.append(df_temp)
-
-df_quant = pd.concat(lista_quant, ignore_index=True)
-df_quant = df_quant.groupby("Produto", as_index=False).agg({"Quantidade": "sum"})
-df_quant = df_quant.sort_values("Quantidade", ascending=False)
-st.subheader("Top 10 Produtos por Quantidade Vendida")
-fig_quant, ax_quant = plt.subplots()
-ax_quant.barh(df_quant.head(10)["Produto"], df_quant.head(10)["Quantidade"])
-ax_quant.set_xlabel("Quantidade")
-ax_quant.set_ylabel("Produto")
-plt.tight_layout()
-plt.gca().invert_yaxis()
-st.pyplot(fig_quant)
+# ── Categorização ──────────────────────────────────────────────────────────────
 
 def categorizar(nome):
     if "Absorvente" in nome or "Sachê" in nome:
         return "Armazenamento"
-    else:
-        return "Bótons"
+    return "Bótons"
 
-df_quant["Categoria"] = df_quant["Produto"].apply(categorizar)
-df_categorias = df_quant.groupby("Categoria").agg({"Quantidade": "sum"})
+df_prod["Categoria"] = df_prod["Produto"].apply(categorizar)
+df_categorias = df_prod.groupby("Categoria", as_index=False).agg({"Quantidade": "sum"})
 
-st.subheader("Vendas por Categoria")
-fig_rosca, ax_rosca = plt.subplots()
-ax_rosca.pie(
-    df_categorias["Quantidade"],
-    labels=df_categorias.index,
-    autopct="%1.1f%%",
-    wedgeprops={"width": 0.5}
-)
-st.pyplot(fig_rosca)
-
-
-arquivos_cli = glob.glob("clientes/*.csv")
-lista_cli = []
-for arquivo in arquivos_cli:
-    df_temp = pd.read_csv(arquivo, sep=";")
-    df_temp["Total"] = df_temp["Total"].astype(str).str.replace(",", ".").astype(float)
-    df_temp["Nome"] = df_temp["Cliente"].str.split(" - ").str[0]
-    lista_cli.append(df_temp)
-
-df_cli = pd.concat(lista_cli, ignore_index=True)
-df_cli = df_cli.groupby("Nome", as_index=False).agg({"Total": "sum"})
+df_cli = df_vendas.groupby("Nome", as_index=False).agg({"Total": "sum"})
 df_cli = df_cli.sort_values("Total", ascending=False)
-st.subheader("Top 10 Clientes por Faturamento")
 
-fig_cli, ax_cli = plt.subplots()
-ax_cli.barh(df_cli.head(10)["Nome"], df_cli.head(10)["Total"])
-ax_cli.set_xlabel("Total (R$)")
-ax_cli.set_ylabel("Cliente")
-plt.tight_layout()
-plt.gca().invert_yaxis()
-st.pyplot(fig_cli)
+df_prod_receita = df_prod.sort_values("Valor Total", ascending=False)
+df_prod_quant = df_prod.sort_values("Quantidade", ascending=False)
+
+# ── Layout ─────────────────────────────────────────────────────────────────────
+
+st.title("Gimimo — Análise de Vendas")
+
+# Métricas
+col1, col2, col3 = st.columns(3)
+col1.metric("💰 Faturamento Total", f"R$ {df_vendas['Total'].sum():,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+col2.metric("🛒 Total de Pedidos", len(df_vendas))
+col3.metric("🎯 Ticket Médio", f"R$ {df_vendas['Total'].mean():,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+
+st.divider()
+
+# Linha 1 — Faturamento mensal + Rosca
+col_fat, col_rosca = st.columns([2, 1])
+
+with col_fat:
+    st.subheader("Evolução do Faturamento Mensal")
+    fig_fat = px.line(
+        df_fat,
+        x=df_fat["Mês"].astype(str),
+        y="Valor",
+        markers=True,
+        template="plotly_dark",
+        labels={"x": "Mês", "Valor": "Valor (R$)"}
+    )
+    fig_fat.update_traces(line_color="#4C9BE8", marker=dict(size=8))
+    st.plotly_chart(fig_fat, use_container_width=True)
+
+with col_rosca:
+    st.subheader("Vendas por Categoria")
+    fig_rosca = go.Figure(go.Pie(
+        labels=df_categorias["Categoria"],
+        values=df_categorias["Quantidade"],
+        hole=0.5,
+        marker_colors=["#4C9BE8", "#E87C4C"]
+    ))
+    fig_rosca.update_layout(template="plotly_dark", showlegend=True)
+    st.plotly_chart(fig_rosca, use_container_width=True)
+
+st.divider()
+
+# Linha 2 — Top produtos por receita + por quantidade
+col_rec, col_quant = st.columns(2)
+
+with col_rec:
+    st.subheader("Top 10 Produtos por Receita")
+    top_rec = df_prod_receita.head(10).sort_values("Valor Total")
+    fig_rec = px.bar(
+        top_rec,
+        x="Valor Total",
+        y="Produto",
+        orientation="h",
+        template="plotly_dark",
+        labels={"Valor Total": "Receita (R$)", "Produto": ""},
+        color="Valor Total",
+        color_continuous_scale="Blues"
+    )
+    fig_rec.update_layout(coloraxis_showscale=False)
+    st.plotly_chart(fig_rec, use_container_width=True)
+
+with col_quant:
+    st.subheader("Top 10 Produtos por Quantidade")
+    top_quant = df_prod_quant.head(10).sort_values("Quantidade")
+    fig_quant = px.bar(
+        top_quant,
+        x="Quantidade",
+        y="Produto",
+        orientation="h",
+        template="plotly_dark",
+        labels={"Quantidade": "Unidades Vendidas", "Produto": ""},
+        color="Quantidade",
+        color_continuous_scale="Blues"
+    )
+    fig_quant.update_layout(coloraxis_showscale=False)
+    st.plotly_chart(fig_quant, use_container_width=True)
+
+st.divider()
+
+# Linha 3 — Top clientes
+st.subheader("Top 10 Clientes por Faturamento")
+top_cli = df_cli.head(10).sort_values("Total")
+fig_cli = px.bar(
+    top_cli,
+    x="Total",
+    y="Nome",
+    orientation="h",
+    template="plotly_dark",
+    labels={"Total": "Total (R$)", "Nome": ""},
+    color="Total",
+    color_continuous_scale="Blues"
+)
+fig_cli.update_layout(coloraxis_showscale=False)
+st.plotly_chart(fig_cli, use_container_width=True)
