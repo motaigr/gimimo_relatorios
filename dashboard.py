@@ -12,10 +12,17 @@ st.set_page_config(
 
 st.markdown("""
     <style>
-        .block-container { padding-top: 1.5rem; padding-bottom: 1rem; }
-        h1 { color: #FFFFFF; }
-        h2, h3 { color: #CCCCCC; }
-        .stMetric { background-color: #1E1E2E; border-radius: 10px; padding: 10px; }
+        .stApp { background-color: #0E1117; }
+        .block-container { padding-top: 1.5rem; }
+        [data-testid="stMetric"] {
+            background-color: #1E1E2E;
+            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid #3A3A5C;
+        }
+        [data-testid="stMetricLabel"] { color: #AAAACC !important; font-size: 14px; }
+        [data-testid="stMetricValue"] { color: #FFFFFF !important; font-size: 28px; }
+            h1, h2, h3 { color: #FFFFFF !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -66,12 +73,13 @@ df_prod = carregar_produtos()
 # ── Categorização ──────────────────────────────────────────────────────────────
 
 def categorizar(nome):
-    if "Absorvente" in nome or "Sachê" in nome:
+    if "Absorvente" in nome or "Sachê" in nome or "Sach" in nome:
         return "Armazenamento"
     return "Bótons"
 
 df_prod["Categoria"] = df_prod["Produto"].apply(categorizar)
 df_categorias = df_prod.groupby("Categoria", as_index=False).agg({"Quantidade": "sum"})
+df_prod["Produto"] = df_prod["Produto"].str[:40]
 
 df_cli = df_vendas.groupby("Nome", as_index=False).agg({"Total": "sum"})
 df_cli = df_cli.sort_values("Total", ascending=False)
@@ -104,7 +112,10 @@ with col_fat:
         template="plotly_dark",
         labels={"x": "Mês", "Valor": "Valor (R$)"}
     )
-    fig_fat.update_traces(line_color="#4C9BE8", marker=dict(size=8))
+    fig_fat.update_layout(
+    paper_bgcolor="#0E1117",
+    plot_bgcolor="#0E1117"
+)
     st.plotly_chart(fig_fat, use_container_width=True)
 
 with col_rosca:
@@ -113,9 +124,14 @@ with col_rosca:
         labels=df_categorias["Categoria"],
         values=df_categorias["Quantidade"],
         hole=0.5,
-        marker_colors=["#4C9BE8", "#E87C4C"]
+        marker_colors=["#E87C4C", "#4C9BE8"]
     ))
-    fig_rosca.update_layout(template="plotly_dark", showlegend=True)
+    fig_rosca.update_layout(
+    paper_bgcolor="#0E1117",
+    plot_bgcolor="#0E1117",
+    font_color="white",
+    legend=dict(font=dict(color="white"))
+)
     st.plotly_chart(fig_rosca, use_container_width=True)
 
 st.divider()
@@ -136,7 +152,7 @@ with col_rec:
         color="Valor Total",
         color_continuous_scale="Blues"
     )
-    fig_rec.update_layout(coloraxis_showscale=False)
+    fig_rec.update_layout(paper_bgcolor="#0E1117", plot_bgcolor="#0E1117")
     st.plotly_chart(fig_rec, use_container_width=True)
 
 with col_quant:
@@ -152,7 +168,7 @@ with col_quant:
         color="Quantidade",
         color_continuous_scale="Blues"
     )
-    fig_quant.update_layout(coloraxis_showscale=False)
+    fig_quant.update_layout(paper_bgcolor="#0E1117", plot_bgcolor="#0E1117")
     st.plotly_chart(fig_quant, use_container_width=True)
 
 st.divider()
@@ -170,5 +186,5 @@ fig_cli = px.bar(
     color="Total",
     color_continuous_scale="Blues"
 )
-fig_cli.update_layout(coloraxis_showscale=False)
+fig_cli.update_layout(paper_bgcolor="#0E1117", plot_bgcolor="#0E1117")
 st.plotly_chart(fig_cli, use_container_width=True)
